@@ -42,7 +42,7 @@ func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	if _, err := ec.Subscribe("products", func(p *Product) {
-		fmt.Printf("\nRecieve: %v: %v", p.MachineId, p.UUID)
+		fmt.Printf("\nRecieve: %v: %v (%v)", p.MachineId, p.UUID, p.Ok)
 		database.Save(p)
 		database.Exec("INSERT INTO product_stream values(?, ?)", p.UUID, p.Ok)
 	}); err != nil {
