@@ -1,0 +1,14 @@
+version: '3.5'
+
+networks:
+  default:
+
+services:
+  messaging:
+    image: nats
+    networks:
+      default:
+    ports:
+    - "4222:4222"
+    - "8222:8222"
+    - "6222:6222"
