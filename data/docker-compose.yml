@@ -1,0 +1,16 @@
+version: '3.5'
+
+networks:
+  default:
+
+services:
+  storage:
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    image: pipelinedb/pipelinedb-postgresql-11
+    networks:
+      default:
+    ports:
+    - "5432:5432"
