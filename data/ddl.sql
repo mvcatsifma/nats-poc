@@ -40,12 +40,31 @@ select *
 from products_total;
 --
 
+CREATE FOREIGN TABLE status_stream (
+  machine_id   varchar(255),
+  status varchar(255),
+  seconds bigint
+)
+SERVER pipelinedb;
+
+CREATE VIEW status_seconds WITH (action = materialize) AS
+  SELECT machine_id, status, SUM(seconds)
+  FROM status_stream
+  GROUP BY (machine_id, status);
+
+--
+select *
+from status_seconds
+order by machine_id, status;
+--
+
 drop view products_total;
 drop view products_ok;
 drop view products_machine;
 drop view products_product_type;
 
 drop foreign table product_stream;
+drop foreign table status_stream;
 
 drop table products;
 drop table statuses;

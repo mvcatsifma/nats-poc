@@ -52,6 +52,10 @@ func main() {
 	wg.Add(1)
 	if _, err := ec.Subscribe("status", func(s *Status) {
 		fmt.Printf("\nRecieve: %+v", s)
+		result := &Status{}
+		database.Where("machine_id = ?", s.MachineId).First(result)
+		database.Exec("INSERT INTO status_stream values(?, ?, ?)",
+			s.MachineId, result.Status, s.UpdatedAt.Sub(result.UpdatedAt)/time.Second)
 		database.Save(s)
 	}); err != nil {
 		log.Fatal()
