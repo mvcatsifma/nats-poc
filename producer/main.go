@@ -11,6 +11,8 @@ import (
 )
 
 var machines = []string{"machine-1", "machine-2", "machine-3"}
+var productTypes = []string{"pt1", "pt2", "pt3"}
+var status = []string{"RUNNING", "STOPPED", "SERVICING", "RESETTING"}
 
 func main() {
 	var wg = sync.WaitGroup{}
@@ -31,23 +33,41 @@ func main() {
 			}
 			defer ec.Close()
 
-		MachineLoop:
+			go func() {
+			ProductLoop:
+				for {
+					time.Sleep(time.Second * time.Duration(rand.Int63n(2)))
+					product := &Product{
+						UUID:        uuid.Must(uuid.NewV4()),
+						MachineId:   machine,
+						ProductType: productTypes[rand.Intn(len(productTypes))],
+						Ok:          rand.Float32() < 0.9,
+						CreatedAt:   time.Now(),
+					}
+					if err := ec.Publish("products", product); err != nil {
+						fmt.Println(err)
+						break ProductLoop
+					} else {
+						fmt.Printf("\nSend: %+v", product)
+					}
+					nc.Flush()
+				}
+			}()
+
+		StatusLoop:
 			for {
 				time.Sleep(time.Second * time.Duration(rand.Int63n(10)))
-				product := &Product{
-					UUID:      uuid.Must(uuid.NewV4()),
-					Produced:  time.Now(),
-					Ok:        rand.Float32() < 0.9,
+				status := &Status{
+					Status:    status[rand.Intn(len(status))],
 					MachineId: machine,
+					UpdatedAt: time.Now(),
 				}
-
-				if err := ec.Publish("products", product); err != nil {
-					break MachineLoop
+				if err := ec.Publish("status", status); err != nil {
+					fmt.Println(err)
+					break StatusLoop
 				} else {
-					fmt.Printf("\nSend: %v: %v", machine, product.UUID)
+					fmt.Printf("\nSend: %+v", status)
 				}
-
-				// Make sure the message goes through before we close
 				nc.Flush()
 			}
 		}(machine)
@@ -57,8 +77,15 @@ func main() {
 }
 
 type Product struct {
-	UUID      uuid.UUID
+	UUID        uuid.UUID
+	MachineId   string
+	ProductType string
+	Ok          bool
+	CreatedAt   time.Time
+}
+
+type Status struct {
 	MachineId string
-	Ok        bool
-	Produced  time.Time
+	Status    string
+	UpdatedAt time.Time
 }

@@ -23,6 +23,7 @@ func init() {
 		panic("failed to connect database")
 	}
 	database.AutoMigrate(&Product{})
+	database.AutoMigrate(&Status{})
 }
 
 func main() {
@@ -42,9 +43,16 @@ func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	if _, err := ec.Subscribe("products", func(p *Product) {
-		fmt.Printf("\nRecieve: %v: %v (%v)", p.MachineId, p.UUID, p.Ok)
+		fmt.Printf("\nRecieve: %+v", p)
+		database.Exec("INSERT INTO product_stream values(?, ?, ?, ?, ?)", p.UUID, p.MachineId, p.ProductType, p.Ok, p.CreatedAt)
 		database.Save(p)
-		database.Exec("INSERT INTO product_stream values(?, ?)", p.UUID, p.Ok)
+	}); err != nil {
+		log.Fatal()
+	}
+	wg.Add(1)
+	if _, err := ec.Subscribe("status", func(s *Status) {
+		fmt.Printf("\nRecieve: %+v", s)
+		database.Save(s)
 	}); err != nil {
 		log.Fatal()
 	}
@@ -55,8 +63,15 @@ func main() {
 }
 
 type Product struct {
-	UUID      uuid.UUID
-	MachineId string
-	Ok        bool
-	Produced  time.Time
+	UUID        uuid.UUID `gorm:"primary_key"`
+	MachineId   string
+	ProductType string
+	Ok          bool
+	CreatedAt   time.Time
+}
+
+type Status struct {
+	MachineId string `gorm:"primary_key"`
+	Status    string
+	UpdatedAt time.Time
 }
